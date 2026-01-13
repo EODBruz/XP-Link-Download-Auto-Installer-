@@ -1,7 +1,5 @@
-╔═══════════════════════════════════════════════════════════════╗
-║                    XP Link Auto Installer                     ║
-║                    www.xpcontrollers.com                      ║
-╚═══════════════════════════════════════════════════════════════╝
+                    XP Link Auto Installer
+                    www.xpcontrollers.com                    
 
 INSTALLATION INSTRUCTIONS:
 ==========================
@@ -95,10 +93,9 @@ For bugs, issues, or questions:
 - Contact: EODBruz / XP Controllers
 - Website: www.xpcontrollers.com
 
-╔═══════════════════════════════════════════════════════════════╗
-║           All Rights To XP Controllers                        ║
-║           (Budd's Controllers)                                ║
-║                                                               ║
-║   Auto Installer Created By: EODBruz                          ║
-║   Made to simplify installing programs silently               ║
-╚═══════════════════════════════════════════════════════════════╝
+
+          All Rights To XP Controllers                        
+           (Budd's Controllers)                                
+                                                               
+   Auto Installer Created By: EODBruz                          
+   Made to simplify installing programs silently
