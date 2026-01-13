@@ -1,101 +1,139 @@
-                    XP Link Auto Installer
-                    www.xpcontrollers.com                    
+# XP Link Controllers Package - Auto Installer
 
-INSTALLATION INSTRUCTIONS:
-==========================
-1. Extract ALL files to the same folder
-2. Double-click "Installer.bat"
-3. Click "Yes" when Windows asks for administrator permission
-4. The installer will automatically:
-   - Check what's already installed
-   - Download only missing components
-   - Install everything silently in the background
-   - Restart only if HidHide driver was installed
+![XP Controllers Logo](https://raw.githubusercontent.com/EODBruz/XP-Link-Download-Auto-Installer-/main/logo.png)
 
-SYSTEM REQUIREMENTS:
-====================
-- Windows 10 or Windows 11
-- Active internet connection
-- Administrator access (UAC prompt)
-- Approximately 100 MB free disk space
+An automated installation script for XP Link Controllers software and all required dependencies.
 
-WHAT GETS INSTALLED:
-====================
-✓ XP Link Program
-  → Installed to: Desktop\XP Link.exe
-  → Main controller configuration software
+## 🎮 What is XP Link?
 
-✓ ViGEmBus Driver
-  → Virtual gamepad driver
-  → Allows controller emulation
-  → No restart required
+XP Link is a controller configuration software from **XP Controllers (Budd's Controllers)** that allows you to use various gaming controllers on your PC with advanced customization options.
 
-✓ HidHide Driver  
-  → Device hiding utility
-  → Prevents controller conflicts
-  → **RESTART REQUIRED** (only if newly installed)
+**Official Website**: [www.xpcontrollers.com](https://www.xpcontrollers.com)
 
-✓ Python 3.13
-  → Required dependency for XP Link
-  → Installed system-wide with PATH
-  → No restart required
+## ✨ Features
 
-HOW THE INSTALLER WORKS:
-=========================
-The PowerShell script performs these steps:
+- **Fully Automated Installation** - One-click setup of all required components
+- **Smart Detection** - Automatically detects what's already installed and skips unnecessary downloads
+- **Latest Versions** - Always downloads the most recent releases from GitHub
+- **Modern UI** - Clean, branded installer window with progress tracking
+- **Silent Installation** - Installs components quietly in the background
+- **Auto-Restart** - Automatically restarts your PC if required (only when HidHide is newly installed)
 
-1. VERIFICATION PHASE
-   - Checks if you have administrator rights
-   - Elevates automatically if needed
-   - Verifies what components are already installed
+## 📦 What Gets Installed
 
-2. SMART DOWNLOAD PHASE
-   - Downloads ONLY missing components
-   - XP Link: from Dropbox (private link)
-   - ViGEmBus: Latest from GitHub releases
-   - HidHide: Latest from GitHub releases
-   - Python: Official Python.org installer
+The installer automatically downloads and installs:
 
-3. SILENT INSTALLATION PHASE
-   - Installs all components without user interaction
-   - Skips components that are already installed
-   - Shows progress in real-time GUI window
+1. **XP Link Program** - Main controller configuration software (installed to Desktop)
+2. **ViGEmBus Driver** - Virtual gamepad driver for controller emulation
+3. **HidHide** - Device hiding utility to prevent double inputs
+4. **Python 3.13** - Required runtime environment
 
-4. COMPLETION
-   - If HidHide was installed: Automatic restart in 5 seconds
-   - If only other components: No restart needed
-   - All installations logged to: %TEMP%\xplink_install.log
+## 💻 System Requirements
 
-FEATURES:
-=========
-✓ Fully automated installation
-✓ Smart detection - skips already installed components
-✓ No unnecessary restarts
-✓ Clean, modern GUI with progress tracking
-✓ Detailed logging for troubleshooting
-✓ Downloads latest versions from official sources
+- **OS**: Windows 10 or Windows 11
+- **Permissions**: Administrator access (UAC prompt)
+- **Internet**: Active internet connection
+- **Disk Space**: Approximately 100 MB free space
 
-TROUBLESHOOTING:
-================
-If installation fails:
-1. Check the log file at: C:\Users\[YourName]\AppData\Local\Temp\xplink_install.log
-2. Ensure you have stable internet connection
-3. Verify you clicked "Yes" on the UAC prompt
-4. Try running as administrator manually (right-click Installer.bat)
+## 🚀 Installation Instructions
 
-If Windows Defender blocks the installer:
-- Click "More info" → "Run anyway"
-- This is normal for unsigned PowerShell scripts
+### Method 1: Download and Run (Recommended)
 
-SUPPORT:
-========
-For bugs, issues, or questions:
-- Contact: EODBruz / XP Controllers
-- Website: www.xpcontrollers.com
+1. Go to the [Releases](https://github.com/EODBruz/XP-Link-Download-Auto-Installer-/releases/latest) page
+2. Download the latest `installer.bat` or PowerShell script
+3. Right-click and select **"Run as Administrator"**
+4. Follow the on-screen prompts
 
+### Method 2: Direct PowerShell Execution
 
-          All Rights To XP Controllers                        
-           (Budd's Controllers)                                
-                                                               
-   Auto Installer Created By: EODBruz                          
-   Made to simplify installing programs silently
+1. Download `XP Link Installer.ps1`
+2. Right-click on the file and select **"Run with PowerShell"**
+3. Click "Yes" when prompted for administrator access
+
+### Method 3: One-Line Command (Advanced)
+
+Open PowerShell as Administrator and run:
+
+```powershell
+iwr -useb https://raw.githubusercontent.com/EODBruz/XP-Link-Download-Auto-Installer-/main/XP%20Link%20Installer.ps1 | iex
+```
+
+## 🔧 How It Works
+
+The installer performs these steps automatically:
+
+1. **Check Administrator Privileges** - Requests elevation if needed
+2. **Verify Existing Components** - Detects what's already installed
+3. **Download Missing Components** - Fetches only what's needed from official sources
+4. **Silent Installation** - Installs everything in the background
+5. **Restart (if needed)** - Only restarts if HidHide was newly installed
+
+## 📝 Installation Process Details
+
+- **Check Phase**: Scans your system for existing installations
+- **Download Phase**: Downloads missing components from GitHub releases
+- **Install Phase**: Silently installs all required software
+- **Completion**: Shows success message or restart countdown
+
+### Restart Behavior
+
+- **No restart needed**: If only XP Link, ViGEmBus, or Python were installed
+- **Restart required**: Only if HidHide is newly installed (5-second countdown)
+
+## ⚠️ Important Notes
+
+- The installer **requires administrator privileges** to install drivers
+- **HidHide installation** requires a system restart to function properly
+- All components are downloaded from their **official GitHub repositories**
+- The installer creates a log file at: `%TEMP%\xplink_install.log`
+
+## 🐛 Troubleshooting
+
+### Installer Won't Run
+- Right-click and select "Run as Administrator"
+- Check that PowerShell execution policy allows scripts
+- Temporarily disable antivirus if it blocks the installer
+
+### Download Fails
+- Verify you have an active internet connection
+- Check firewall settings aren't blocking GitHub
+- Check the log file at `%TEMP%\xplink_install.log`
+
+### Installation Fails
+- Check the log file for detailed error messages
+- Ensure you have sufficient disk space (~100 MB)
+- Try running Windows Update to ensure your system is current
+
+### Python Not Recognized After Install
+- Restart your computer or open a new command prompt
+- Python is added to PATH during installation but may require a restart
+
+## 📄 Log Files
+
+Installation logs are saved to: `%TEMP%\xplink_install.log`
+
+Check this file if you encounter any issues during installation.
+
+## 🤝 Credits
+
+- **XP Link Software**: [XP Controllers (Budd's Controllers)](https://www.xpcontrollers.com)
+- **Auto Installer**: Created by **EODBruz**
+- **ViGEmBus**: [Nefarius Software Solutions](https://github.com/nefarius/ViGEmBus)
+- **HidHide**: [Nefarius Software Solutions](https://github.com/nefarius/HidHide)
+- **Python**: [Python Software Foundation](https://www.python.org)
+
+## 📜 License
+
+All rights to XP Link software belong to **XP Controllers (Budd's Controllers)**.
+
+This installer script is provided as-is for convenience in setting up the XP Link environment.
+
+## 🔗 Links
+
+- **XP Controllers Website**: [www.xpcontrollers.com](https://www.xpcontrollers.com)
+- **Report Issues**: [GitHub Issues](https://github.com/EODBruz/XP-Link-Download-Auto-Installer-/issues)
+- **Latest Release**: [Releases Page](https://github.com/EODBruz/XP-Link-Download-Auto-Installer-/releases)
+
+---
+
+**Made with ❤️ by EODBruz**
