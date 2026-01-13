@@ -1,2 +1,1 @@
-# XP-Link-temp-download
-Download Link For Installer
+Auto Installs Lastest Version
