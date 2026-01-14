@@ -34,6 +34,9 @@ Add-Type -AssemblyName System.Windows.Forms
 $LogFile = "$env:TEMP\xplink_install.log"
 Start-Transcript -Path $LogFile -Force | Out-Null
 
+Write-Host "=== XP Link Installer Started ==="
+Write-Host "Log file: $LogFile"
+
 $Xaml = @"
 <Window xmlns="http://schemas.microsoft.com/winfx/2006/xaml/presentation"
         xmlns:x="http://schemas.microsoft.com/winfx/2006/xaml"
@@ -104,8 +107,14 @@ $Xaml = @"
 </Window>
 "@
 
-$Reader = New-Object System.Xml.XmlNodeReader ([xml]$Xaml)
-$Window = [Windows.Markup.XamlReader]::Load($Reader)
+try {
+    $Reader = New-Object System.Xml.XmlNodeReader ([xml]$Xaml)
+    $Window = [Windows.Markup.XamlReader]::Load($Reader)
+    Write-Host "Window loaded successfully"
+} catch {
+    Write-Host "ERROR: Failed to load window: $($_.Exception.Message)"
+    throw
+}
 
 $StatusText  = $Window.FindName("StatusText")
 $ProgressBar = $Window.FindName("ProgressBar")
@@ -132,16 +141,38 @@ function Set-ProgressColor($color) {
 
 $temp = "$env:TEMP\XPLink"
 New-Item -ItemType Directory -Force -Path $temp | Out-Null
+Write-Host "Temp directory: $temp"
 
 # ============================
-# UPDATED: XP Link now uses GitHub releases
+# Detect OneDrive Desktop
+# ============================
+function Get-DesktopPath {
+    $oneDriveDesktop = "$env:OneDrive\Desktop"
+    $standardDesktop = "$env:USERPROFILE\Desktop"
+    
+    if ($env:OneDrive -and (Test-Path $oneDriveDesktop)) {
+        Write-Host "OneDrive Desktop detected: $oneDriveDesktop"
+        return $oneDriveDesktop
+    } else {
+        Write-Host "Standard Desktop detected: $standardDesktop"
+        return $standardDesktop
+    }
+}
+
+$DesktopPath = Get-DesktopPath
+Write-Host "Desktop path: $DesktopPath"
+
+# ============================
+# XP Link GitHub settings
 # ============================
 $XPLinkRepo = "EODBruz/XP-Link-Download-Auto-Installer-"
-$ProgramExe = "$env:USERPROFILE\Desktop\XP Link.exe"
+$ProgramExe = "$DesktopPath\XP Link.exe"
 
 $ViGEmExe   = "$temp\ViGEmBus.exe"
 $HidHideExe = "$temp\HidHide.exe"
 $PythonExe  = "$temp\Python.exe"
+
+Write-Host "XP Link will be installed to: $ProgramExe"
 
 # ============================
 # Reliable downloader
@@ -177,15 +208,21 @@ function Get-LatestGitHubExe($repo) {
 
 # Use a timer to run the installation asynchronously
 $timer = New-Object System.Windows.Threading.DispatcherTimer
-$timer.Interval = [TimeSpan]::FromMilliseconds(100)
+$timer.Interval = [TimeSpan]::FromMilliseconds(500)
 
 $timer.Add_Tick({
     $timer.Stop()
+    Write-Host "Timer triggered - starting background installation"
     
     # Run installation in background runspace
     $runspace = [runspacefactory]::CreateRunspace()
     $runspace.ApartmentState = "STA"
+    $runspace.ThreadOptions = "ReuseThread"
     $runspace.Open()
+    
+    Write-Host "Runspace created and opened"
+    
+    # Pass all variables to runspace
     $runspace.SessionStateProxy.SetVariable("Window", $Window)
     $runspace.SessionStateProxy.SetVariable("StatusText", $StatusText)
     $runspace.SessionStateProxy.SetVariable("ProgressBar", $ProgressBar)
@@ -195,33 +232,52 @@ $timer.Add_Tick({
     $runspace.SessionStateProxy.SetVariable("ViGEmExe", $ViGEmExe)
     $runspace.SessionStateProxy.SetVariable("HidHideExe", $HidHideExe)
     $runspace.SessionStateProxy.SetVariable("PythonExe", $PythonExe)
+    $runspace.SessionStateProxy.SetVariable("LogFile", $LogFile)
+    
+    Write-Host "Variables set in runspace"
     
     $ps = [powershell]::Create()
     $ps.Runspace = $runspace
     
+    Write-Host "PowerShell instance created"
+    
     [void]$ps.AddScript({
+        Write-Host "=== Background installation script starting ==="
+        
         [Net.ServicePointManager]::SecurityProtocol = [Net.SecurityProtocolType]::Tls12
         
         function Set-Status($text, $percent) {
-            $Window.Dispatcher.Invoke([action]{
-                $StatusText.Text = $text
-                $ProgressBar.Value = $percent
-            })
+            try {
+                $Window.Dispatcher.Invoke([action]{
+                    $StatusText.Text = $text
+                    $ProgressBar.Value = $percent
+                })
+                Write-Host "Status: $text ($percent%)"
+            } catch {
+                Write-Host "ERROR updating status: $($_.Exception.Message)"
+            }
         }
         
         function Set-ProgressColor($color) {
-            $Window.Dispatcher.Invoke([action]{
-                if ($color -eq "Green") {
-                    $ProgressBar.Foreground = [System.Windows.Media.Brushes]::LimeGreen
-                } elseif ($color -eq "Red") {
-                    $ProgressBar.Foreground = [System.Windows.Media.Brushes]::Red
-                } else {
-                    $ProgressBar.Foreground = [System.Windows.Media.Brushes]::White
-                }
-            })
+            try {
+                $Window.Dispatcher.Invoke([action]{
+                    if ($color -eq "Green") {
+                        $ProgressBar.Foreground = [System.Windows.Media.Brushes]::LimeGreen
+                    } elseif ($color -eq "Red") {
+                        $ProgressBar.Foreground = [System.Windows.Media.Brushes]::Red
+                    } else {
+                        $ProgressBar.Foreground = [System.Windows.Media.Brushes]::White
+                    }
+                })
+            } catch {
+                Write-Host "ERROR updating color: $($_.Exception.Message)"
+            }
         }
         
         function DownloadFile($url, $out) {
+            Write-Host "Downloading: $url"
+            Write-Host "To: $out"
+            
             $wc = New-Object System.Net.WebClient
             $wc.Headers.Add("User-Agent", "Mozilla/5.0")
             $wc.Headers.Add("Accept", "*/*")
@@ -231,27 +287,35 @@ $timer.Add_Tick({
                 throw "Download failed: $url"
             }
             
-            Write-Host "Downloaded: $out ($(((Get-Item $out).Length / 1MB).ToString('0.00')) MB)"
+            $size = ((Get-Item $out).Length / 1MB).ToString('0.00')
+            Write-Host "Downloaded: $out ($size MB)"
         }
         
         function Get-LatestGitHubExe($repo) {
+            Write-Host "Fetching latest release: $repo"
+            
             $api = "https://api.github.com/repos/$repo/releases/latest"
             $wc = New-Object System.Net.WebClient
             $wc.Headers.Add("User-Agent", "Mozilla/5.0")
             $json = $wc.DownloadString($api) | ConvertFrom-Json
             $asset = $json.assets | Where-Object { $_.name -match "\.exe$" } | Select-Object -First 1
             if (!$asset) { throw "No EXE found for $repo" }
+            
+            Write-Host "Found: $($asset.name)"
             return $asset.browser_download_url
         }
         
         try {
+            Write-Host "Starting installation checks..."
+            
             $installCount = 0
             $downloadCount = 0
             $hidHideWasInstalled = $false
-            $alreadyInstalled = @()
             
             # Check what's already installed BEFORE downloading
             Set-Status "Checking installed components..." 5
+            
+            Write-Host "Installation path: $ProgramExe"
             
             $xpLinkInstalled = Test-Path $ProgramExe
             Write-Host "XP Link Check: $xpLinkInstalled"
@@ -297,9 +361,7 @@ $timer.Add_Tick({
             
             Write-Host "Components needed: $($needsInstall -join ', ')"
             
-            # ============================
-            # UPDATED: Download XP Link from GitHub releases
-            # ============================
+            # Download XP Link from GitHub releases
             if (-not $xpLinkInstalled) {
                 Set-Status "Fetching latest XP Link..." 8
                 Write-Host "Fetching latest XP Link from GitHub: $XPLinkRepo"
@@ -315,7 +377,7 @@ $timer.Add_Tick({
                 }
                 catch {
                     Write-Host "ERROR downloading XP Link Program: $($_.Exception.Message)"
-                    throw "Failed to download XP Link Program from GitHub releases. Make sure the repository has a release with an .exe file."
+                    throw "Failed to download XP Link Program from GitHub releases."
                 }
             } else {
                 Set-Status "XP Link already exists..." 10
@@ -363,6 +425,7 @@ $timer.Add_Tick({
             } else {
                 Write-Host "Installing ViGEmBus..."
                 $p1 = Start-Process $ViGEmExe -ArgumentList "/quiet /norestart" -Wait -PassThru
+                Write-Host "ViGEmBus exit code: $($p1.ExitCode)"
                 
                 if ($p1.ExitCode -notin 0,3010,1641) {
                     throw "ViGEmBus installation failed with exit code: $($p1.ExitCode)"
@@ -387,18 +450,22 @@ $timer.Add_Tick({
                 $installed = $false
                 foreach ($arg in $hidhideArgs) {
                     try {
+                        Write-Host "Trying HidHide with args: $arg"
                         $p2 = Start-Process -FilePath $HidHideExe -ArgumentList $arg -Wait -PassThru -WindowStyle Hidden
+                        Write-Host "HidHide exit code: $($p2.ExitCode)"
                         
                         if ($p2.ExitCode -in 0,3010,1641) {
                             $installed = $true
                             break
                         }
                     } catch {
+                        Write-Host "HidHide attempt failed: $($_.Exception.Message)"
                         continue
                     }
                 }
                 
                 if (-not $installed) {
+                    Write-Host "Silent install failed, launching interactive"
                     Start-Process -FilePath $HidHideExe -Wait
                 }
                 
@@ -415,7 +482,9 @@ $timer.Add_Tick({
             if ($pythonInstalled) {
                 Write-Host "Python already installed, skipping installation..."
             } else {
+                Write-Host "Installing Python..."
                 $p3 = Start-Process $PythonExe -ArgumentList "/quiet InstallAllUsers=1 PrependPath=1 /norestart" -Wait -PassThru
+                Write-Host "Python exit code: $($p3.ExitCode)"
                 
                 if ($p3.ExitCode -notin 0,3010,1641) {
                     Write-Host "Python installation returned exit code: $($p3.ExitCode)"
@@ -436,11 +505,12 @@ $timer.Add_Tick({
             Set-Status "Install complete!" 100
             Set-ProgressColor "Green"
             
+            Write-Host "Installation complete - Downloaded: $downloadCount, Installed: $installCount"
+            
             Start-Sleep -Seconds 2
             
             if (-not $hidHideWasInstalled) {
                 Write-Host "HidHide was not installed - restart not needed"
-                Write-Host "Downloaded: $downloadCount items, Installed: $installCount items"
                 $Window.Dispatcher.Invoke([action]{
                     $StatusText.Text = "Installation complete! No restart needed."
                     $ProgressBar.Value = 100
@@ -469,9 +539,13 @@ $timer.Add_Tick({
                 $Window.Close()
             })
             
+            Write-Host "Initiating restart..."
             Start-Process "shutdown.exe" -ArgumentList "/r /t 0 /f" -NoNewWindow -Wait
         }
         catch {
+            Write-Host "FATAL ERROR: $($_.Exception.Message)"
+            Write-Host "Stack trace: $($_.ScriptStackTrace)"
+            
             $Window.Dispatcher.Invoke([action]{
                 $errorMsg = $_.Exception.Message
                 $StatusText.Text = "Installation failed!"
@@ -482,18 +556,24 @@ $timer.Add_Tick({
             Start-Sleep -Seconds 2
             
             $Window.Dispatcher.Invoke([action]{
-                [System.Windows.MessageBox]::Show("Installation failed:`n`n$errorMsg`n`nCheck the log at: $env:TEMP\xplink_install.log","Installer Error")
+                [System.Windows.MessageBox]::Show("Installation failed:`n`n$errorMsg`n`nCheck the log at: $LogFile","Installer Error")
                 $Window.Close()
             })
         }
+        
+        Write-Host "=== Background installation script ending ==="
     })
     
-    $ps.BeginInvoke()
+    Write-Host "Starting background PowerShell execution..."
+    $asyncResult = $ps.BeginInvoke()
+    Write-Host "Background execution started"
 })
 
 $Window.Add_Loaded({
+    Write-Host "Window Loaded event fired"
+    
     try {
-        # Logo from GitHub repository - add logo.png to your repo root
+        # Logo from GitHub repository
         $LogoURL = "https://raw.githubusercontent.com/EODBruz/XP-Link-Download-Auto-Installer-/main/logo.png"
         
         $wc = New-Object System.Net.WebClient
@@ -521,8 +601,12 @@ $Window.Add_Loaded({
         if ($wc) { $wc.Dispose() }
     }
     
+    Write-Host "Starting timer for background installation"
     $timer.Start()
 })
 
+Write-Host "About to show window..."
 $Window.ShowDialog() | Out-Null
+Write-Host "Window closed"
+
 Stop-Transcript
