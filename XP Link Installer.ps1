@@ -658,7 +658,7 @@ $Window.Add_Loaded({
                 if ($fileSize -gt 0) {
                     $global:MusicPlayer = New-Object System.Media.SoundPlayer($musicPath)
                     $global:MusicPlayer.Load()
-                    $global:MusicPlayer.PlayLooping()
+                    $global:MusicPlayer.Play()
                     Write-Host "🧊 ICE ICE BABY PLAYING! 🧊"
                 }
             }
