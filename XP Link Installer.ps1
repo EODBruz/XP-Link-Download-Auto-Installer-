@@ -30,6 +30,10 @@ if (-not $isAdmin) {
 
 Add-Type -AssemblyName PresentationFramework
 Add-Type -AssemblyName System.Windows.Forms
+Add-Type -AssemblyName presentationCore
+
+# Global music player variable
+$global:MusicPlayer = $null
 
 $LogFile = "$env:TEMP\xplink_install.log"
 Start-Transcript -Path $LogFile -Force | Out-Null
@@ -80,6 +84,15 @@ $Xaml = @"
                          Background="#222"
                          Foreground="White"/>
             
+            <!-- ICE ICE BABY Banner -->
+            <TextBlock x:Name="IceIceBabyText"
+                       Text="ICE ICE BABY"
+                       Foreground="Cyan"
+                       FontSize="16"
+                       FontWeight="Bold"
+                       HorizontalAlignment="Center"
+                       Margin="0,10,0,0"/>
+            
             <TextBlock x:Name="CopyrightText"
                        Text="All Rights to XP Controllers (Budd's Controllers)"
                        Foreground="White"
@@ -119,6 +132,7 @@ try {
 $StatusText  = $Window.FindName("StatusText")
 $ProgressBar = $Window.FindName("ProgressBar")
 $LogoImage   = $Window.FindName("LogoImage")
+$IceIceBabyText = $Window.FindName("IceIceBabyText")
 
 function Set-Status($text, $percent) {
     $Window.Dispatcher.Invoke([action]{
@@ -233,6 +247,7 @@ $timer.Add_Tick({
     $runspace.SessionStateProxy.SetVariable("HidHideExe", $HidHideExe)
     $runspace.SessionStateProxy.SetVariable("PythonExe", $PythonExe)
     $runspace.SessionStateProxy.SetVariable("LogFile", $LogFile)
+    $runspace.SessionStateProxy.SetVariable("MusicPlayer", $global:MusicPlayer)
     
     Write-Host "Variables set in runspace"
     
@@ -345,6 +360,14 @@ $timer.Add_Tick({
                 Set-ProgressColor "Green"
                 Write-Host "All components detected - skipping everything"
                 Start-Sleep -Seconds 3
+                
+                # Stop Ice Ice Baby
+                try {
+                    if ($MusicPlayer) {
+                        $MusicPlayer.Stop()
+                        $MusicPlayer.Dispose()
+                    }
+                } catch {}
                 
                 $Window.Dispatcher.Invoke([action]{
                     $Window.Close()
@@ -519,6 +542,14 @@ $timer.Add_Tick({
                 
                 Start-Sleep -Seconds 3
                 
+                # Stop Ice Ice Baby
+                try {
+                    if ($MusicPlayer) {
+                        $MusicPlayer.Stop()
+                        $MusicPlayer.Dispose()
+                    }
+                } catch {}
+                
                 $Window.Dispatcher.Invoke([action]{
                     $Window.Close()
                 })
@@ -534,6 +565,14 @@ $timer.Add_Tick({
             }
             
             Set-Status "Restarting now..." 100
+            
+            # Stop Ice Ice Baby before restart
+            try {
+                if ($MusicPlayer) {
+                    $MusicPlayer.Stop()
+                    $MusicPlayer.Dispose()
+                }
+            } catch {}
             
             $Window.Dispatcher.Invoke([action]{
                 $Window.Close()
@@ -554,6 +593,14 @@ $timer.Add_Tick({
             Set-ProgressColor "Red"
             
             Start-Sleep -Seconds 2
+            
+            # Stop Ice Ice Baby on error
+            try {
+                if ($MusicPlayer) {
+                    $MusicPlayer.Stop()
+                    $MusicPlayer.Dispose()
+                }
+            } catch {}
             
             $Window.Dispatcher.Invoke([action]{
                 [System.Windows.MessageBox]::Show("Installation failed:`n`n$errorMsg`n`nCheck the log at: $LogFile","Installer Error")
@@ -595,6 +642,31 @@ $Window.Add_Loaded({
         } else {
             Write-Host "Logo download returned empty data"
         }
+        
+        # 🎵 ICE ICE BABY SURPRISE 🧊
+        try {
+            Write-Host "Loading Ice Ice Baby..."
+            $musicUrl = "https://raw.githubusercontent.com/EODBruz/XP-Link-Download-Auto-Installer-/main/ice.wav"
+            $musicPath = "$temp\ice.wav"
+            
+            $wc.DownloadFile($musicUrl, $musicPath)
+            
+            if (Test-Path $musicPath) {
+                $fileSize = (Get-Item $musicPath).Length
+                Write-Host "Music file downloaded: $fileSize bytes"
+                
+                if ($fileSize -gt 0) {
+                    $global:MusicPlayer = New-Object System.Media.SoundPlayer($musicPath)
+                    $global:MusicPlayer.Load()
+                    $global:MusicPlayer.PlayLooping()
+                    Write-Host "🧊 ICE ICE BABY PLAYING! 🧊"
+                }
+            }
+        } catch {
+            Write-Host "Music failed to load (continuing anyway): $($_.Exception.Message)"
+            # Silent fail - installer continues without music
+        }
+        
     } catch {
         Write-Host "Logo failed to load: $($_.Exception.Message)"
     } finally {
